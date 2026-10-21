@@ -120,8 +120,6 @@ public abstract class AbstractPushTask<O extends AbstractPushTask.Output> extend
         DELETE_ONLY
     }
 
-    public abstract Property<String> getCommitMessage();
-
     public abstract Property<String> getGitDirectory();
 
     public abstract Object globs();
@@ -342,7 +340,13 @@ public abstract class AbstractPushTask<O extends AbstractPushTask.Output> extend
                     renderedBranch
                 );
 
-                String message = runContext.render(this.getCommitMessage()).as(String.class).orElse(null);
+                String defaultMessage = runContext.render(this.fetchedNamespace()).as(String.class)
+                    .filter(n -> !n.isBlank())
+                    .map("Add files from %s namespace"::formatted)
+                    .orElse("Push from Kestra");
+                String message = runContext.render(this.getCommitMessage()).as(String.class)
+                    .filter(m -> !m.isBlank())
+                    .orElse(defaultMessage);
                 ObjectId head = git.getRepository().resolve(Constants.HEAD);
                 PersonIdent author = author(runContext);
                 CommitCommand commitCommand = git.commit()
